@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
   
   
   MPI_Finalize(); /* Shut down and clean up MPI */
-  printf("Elapsed time : %1.4f\n", t_end-t_begin);
+  
 
 
   return 0;
