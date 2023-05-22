@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 	int num_values, chunk;
 
 	int rank, size;
-	MPI_Status status;
+	MPI_Request request[4];
 	MPI_Init(&argc, &argv); /* Initialize MPI */
   	MPI_Comm_size(MPI_COMM_WORLD, &size); /* Get the number of processors */
   	MPI_Comm_rank(MPI_COMM_WORLD, &rank); /* Get my number                */
@@ -54,36 +54,13 @@ int main(int argc, char **argv) {
 	// Repeatedly apply stencil
 	for (int s=0; s<num_steps; s++) {
 		// first pass data to the left then to the right
-		/*
-		if (size != 1){
-			if (rank==0){
-				MPI_Ssend(local_input+EXTENT, EXTENT, MPI_DOUBLE, size-1, 000, MPI_COMM_WORLD);
-				MPI_Recv(local_input+chunk+EXTENT, EXTENT, MPI_DOUBLE, rank+1, 000, MPI_COMM_WORLD, &status);
-				MPI_Ssend(local_input+chunk, EXTENT, MPI_DOUBLE, rank+1, 111, MPI_COMM_WORLD);
-				MPI_Recv(local_input, EXTENT, MPI_DOUBLE, size-1, 111, MPI_COMM_WORLD, &status);			
-			} else if (rank==size-1){
-				MPI_Recv(local_input+chunk+EXTENT, EXTENT, MPI_DOUBLE, 0, 000, MPI_COMM_WORLD, &status);
-				MPI_Ssend(local_input+EXTENT, EXTENT, MPI_DOUBLE, rank-1, 000, MPI_COMM_WORLD);
-				MPI_Recv(local_input, EXTENT, MPI_DOUBLE, rank-1, 111, MPI_COMM_WORLD, &status);	
-				MPI_Ssend(local_input+chunk, EXTENT, MPI_DOUBLE, 0, 111, MPI_COMM_WORLD);
-			} else{
-				MPI_Recv(local_input+chunk+EXTENT, EXTENT, MPI_DOUBLE, rank+1, 000, MPI_COMM_WORLD, &status);
-				MPI_Ssend(local_input+EXTENT, EXTENT, MPI_DOUBLE, rank-1, 000, MPI_COMM_WORLD);
-				MPI_Recv(local_input, EXTENT, MPI_DOUBLE, rank-1, 111, MPI_COMM_WORLD, &status);
-				MPI_Ssend(local_input+chunk, EXTENT, MPI_DOUBLE, rank+1, 111, MPI_COMM_WORLD);
-			}
-		} else {
-			MPI_Send(local_input+EXTENT, EXTENT, MPI_DOUBLE, 0, 000, MPI_COMM_WORLD);
-			MPI_Recv(local_input+chunk+EXTENT, EXTENT, MPI_DOUBLE, 0, 000, MPI_COMM_WORLD, &status);
-			MPI_Send(local_input+chunk, EXTENT, MPI_DOUBLE, 0, 111, MPI_COMM_WORLD);
-			MPI_Recv(local_input, EXTENT, MPI_DOUBLE, 0, 111, MPI_COMM_WORLD, &status);	
-		}
-		*/
-		MPI_Sendrecv(local_input+EXTENT, EXTENT, MPI_DOUBLE, left, 000, local_input+chunk+EXTENT, EXTENT, MPI_DOUBLE, right, 000, MPI_COMM_WORLD, &status);
-		MPI_Sendrecv(local_input+chunk, EXTENT, MPI_DOUBLE, right, 111, local_input, EXTENT, MPI_DOUBLE, left, 111, MPI_COMM_WORLD, &status);
+		MPI_Isend(local_input+EXTENT, EXTENT, MPI_DOUBLE, left, 000, MPI_COMM_WORLD, &request[0]);
+		MPI_Irecv(local_input+chunk+EXTENT, EXTENT, MPI_DOUBLE, right, 000, MPI_COMM_WORLD, &request[1]);
+		MPI_Isend(local_input+chunk, EXTENT, MPI_DOUBLE, right, 111, MPI_COMM_WORLD, &request[2]);
+		MPI_Irecv(local_input, EXTENT, MPI_DOUBLE, left, 111, MPI_COMM_WORLD, &request[3]);	
 
 		// Apply stencil
-		for (int i=EXTENT; i<chunk+EXTENT; i++) {
+		for (int i=2*EXTENT; i<chunk; i++) {
 			double result = 0;
 			for (int j=0; j<STENCIL_WIDTH; j++) {
 				int index = i - EXTENT + j;
@@ -91,7 +68,27 @@ int main(int argc, char **argv) {
 			}
 			local_output[i] = result;
 		}
-		
+
+		MPI_Wait(&request[1], MPI_STATUS_IGNORE);
+		for (int i=chunk; i<chunk+EXTENT; i++) {
+			double result = 0;
+			for (int j=0; j<STENCIL_WIDTH; j++) {
+				int index = i - EXTENT + j;
+				result += STENCIL[j] * local_input[index];
+			}
+			local_output[i] = result;
+		}		
+
+		MPI_Wait(&request[3], MPI_STATUS_IGNORE);
+		for (int i=EXTENT; i<2*EXTENT; i++) {
+			double result = 0;
+			for (int j=0; j<STENCIL_WIDTH; j++) {
+				int index = i - EXTENT + j;
+				result += STENCIL[j] * local_input[index];
+			}
+			local_output[i] = result;
+		}
+
 		// Swap local_input and local_output
 		if (s < num_steps-1) {
 			double *tmp = local_input;
