@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "atomic": "c",
+        "chrono": "c",
+        "cstdint": "c",
+        "compare": "c"
+    }
+}

@@ -18,27 +18,55 @@ void bad_input()
   exit(EXIT_FAILURE);
 }
 
-int32_t* read_input(int* out_n, char* input_file)
-{
-  FILE* infile = fopen(input_file, "r");
-  if (!infile) {
-    bad_input();
-  }
-  if (fscanf(infile, "%d", out_n) != 1) {
-    bad_input();
-  }
-  int n = *out_n;
-  int32_t* M = calloc(n*n, sizeof(int32_t));
-  for (int i = 0; i < n*n; ++i) {
-    if (fscanf(infile, "%d", &M[i]) != 1) {
-      bad_input();
+
+int read_input(const char *file_name, int** M, int* n) {
+    FILE *file;
+    if ((file = fopen(file_name, "r")) == NULL) {
+        perror("Couldn't open input file");
+        return -1;
     }
-  }
-  fclose(infile);
-  return M;
+
+    int num_values;
+    if (fscanf(file, "%d", &num_values) == EOF) {
+        perror("Couldn't read element count from input file");
+        fclose(file);
+        return -1;
+    }
+
+    int sqrt_val = sqrt(num_values);
+    if(sqrt_val * sqrt_val != num_values) {
+        printf("Element count in input file must be a perfect square.\n");
+        fclose(file);
+        return -1;
+    }
+
+    *M = (int*)malloc(num_values * sizeof(int));
+    if (*M == NULL) {
+        perror("Couldn't allocate memory for input");
+        fclose(file);
+        return -1;
+    }
+
+    for (int i = 0; i < num_values; i++) {
+        if (fscanf(file, "%d", &((*M)[i])) == EOF) {
+            perror("Couldn't read elements from input file");
+            fclose(file);
+            free(*M);
+            return -1;
+        }
+    }
+
+    if (fclose(file) != 0) {
+        perror("Warning: couldn't close input file");
+    }
+
+    *n = sqrt_val;
+    return 0;
 }
 
-void print_matrix(int n, int32_t* M)
+
+
+void print_matrix(int n, int* M)
 {
   for (int row = 0; row < n; row++) {
     for (int col = 0; col < n; col++) {
@@ -48,7 +76,7 @@ void print_matrix(int n, int32_t* M)
   }
 }
 
-void print_matrix_file(int n, int32_t* M, char* output_file)
+void print_matrix_file(int n, int* M, char* output_file)
 {
   FILE *outfile = fopen(output_file, "w");
   for (int row = 0; row < n; row++) {
@@ -68,44 +96,44 @@ bool even(int n)
 
 int ascending(const void* a, const void* b)
 {
-  int32_t x = *((int32_t*)a);
-  int32_t y = *((int32_t*)b);
+  int x = *((int*)a);
+  int y = *((int*)b);
   return (x > y) - (x < y);
 }
 
 int descending(const void* a, const void* b)
 {
-  int32_t x = *((int32_t*)a);
-  int32_t y = *((int32_t*)b);
+  int x = *((int*)a);
+  int y = *((int*)b);
   return (x < y) - (x > y);
 }
 
-bool less(int32_t a, int32_t b)
+bool less(int a, int b)
 {
   return a < b;
 }
 
-bool greater_equal(int32_t a, int32_t b)
+bool greater_equal(int a, int b)
 {
   return a >= b;
 }
 
-void swap(int32_t *a, int32_t *b)
+void swap(int *a, int *b)
 {
-  int32_t tmp = *a;
+  int tmp = *a;
   *a = *b;
   *b = tmp;
 }
 
 // ---- FUNCTIONALITY --------------------------------------
-bool check_same_elements(int n, int32_t *M, char *input_file)
+bool check_same_elements(int n, int *M, char *input_file)
 {
-  int32_t *initial = read_input(&n, input_file);
-  int32_t *result  = calloc(n*n, sizeof(*result));
-  memcpy(result, M, n*n * sizeof(int32_t));
+  int *initial = read_input(&n, input_file);
+  int *result  = calloc(n*n, sizeof(*result));
+  memcpy(result, M, n*n * sizeof(int));
 
-  qsort(initial, n*n, sizeof(int32_t), ascending);
-  qsort(result, n*n, sizeof(int32_t), ascending);
+  qsort(initial, n*n, sizeof(int), ascending);
+  qsort(result, n*n, sizeof(int), ascending);
 
   bool ret = true;
   for (int i = 0; i < n*n; i++) {
@@ -119,9 +147,9 @@ bool check_same_elements(int n, int32_t *M, char *input_file)
   return ret;
 }
 
-bool check_sorted(int n, int32_t *M)
+bool check_sorted(int n, int *M)
 {
-  int32_t prev = M[0];
+  int prev = M[0];
   for (int row = 0; row < n; row++) {
     if (even(row)) { // Even row: go left to right
       for (int col = 0; col < n; col++) {
@@ -143,15 +171,15 @@ bool check_sorted(int n, int32_t *M)
   return true;
 }
 
-bool checker(int n, int32_t* M, char *input_file) 
+bool checker(int n, int* M, char *input_file) 
 {
   return check_sorted(n, M) && check_same_elements(n, M, input_file);
 }
 
-long partition(int32_t *data, int n, int col, long left, long right)
+long partition(int *data, int n, int col, long left, long right)
 {
   long pivot_index = left + (right - left) / 2;
-  const int32_t pivot = data[pivot_index*n+col];
+  const int pivot = data[pivot_index*n+col];
   swap(&data[pivot_index*n+col], &data[right*n+col]);
 
   for (long i = left; i < right; i++) {
@@ -164,7 +192,7 @@ long partition(int32_t *data, int n, int col, long left, long right)
   return left;
 }
 
-void quicksort(int32_t *data, int n, int col, long left, long right)
+void quicksort(int *data, int n, int col, long left, long right)
 {
   if (right > left) {
     long pivot_index = partition(data, n, col, left, right);
@@ -173,26 +201,26 @@ void quicksort(int32_t *data, int n, int col, long left, long right)
   }
 }
 
-void sort_rows(int w, int h, int32_t *M)
+void sort_rows(int w, int h, int *M)
 {
   for (int row = 0; row < h; row++) {
     if (even(row)) {
-      qsort(&M[row*w], w, sizeof(int32_t), ascending);
+      qsort(&M[row*w], w, sizeof(int), ascending);
     } else {
-      qsort(&M[row*w], w, sizeof(int32_t), descending);
+      qsort(&M[row*w], w, sizeof(int), descending);
     }
   }
 }
 
-void sort_columns(int w, int h, int32_t* M)
+void sort_columns(int w, int h, int* M)
 {
   for (int col = 0; col < w; col++) {
     quicksort(M, w, col, 0, h-1);
   }
 }
 
-void merge(const int32_t *v1, int n1, const int32_t *v2, int n2, 
-           int32_t *result, bool (*compare)(int32_t, int32_t)) 
+void merge(const int *v1, int n1, const int *v2, int n2, 
+           int *result, bool (*compare)(int, int)) 
 {
   int i = 0;
   int j = 0;
@@ -217,8 +245,8 @@ void merge(const int32_t *v1, int n1, const int32_t *v2, int n2,
 }
 
 
-void exchange_and_merge(int partner, int rank, int w, int h, int32_t *slice, 
-     int32_t *partner_slice, MPI_Datatype TYPE_ROW_SEND, MPI_Datatype TYPE_ROW_RECV)
+void exchange_and_merge(int partner, int rank, int w, int h, int *slice, 
+     int *partner_slice, MPI_Datatype TYPE_ROW_SEND, MPI_Datatype TYPE_ROW_RECV)
 {
   int offset = even(rank) ? w : 0;
 
@@ -238,9 +266,9 @@ void exchange_and_merge(int partner, int rank, int w, int h, int32_t *slice,
   );
 
   int partner_row = 0;
-  int32_t merged[w*2];
+  int merged[w*2];
   for (int row = even(rank) ? 0 : 1; row < h; row += 2) {
-    size_t s = w * sizeof(int32_t);
+    size_t s = w * sizeof(int);
 
     if (even(rank)) {
       merge(&slice[row * w], w, &partner_slice[partner_row * w], w, merged, less);
@@ -272,13 +300,13 @@ void exchange_and_merge(int partner, int rank, int w, int h, int32_t *slice,
 
   partner_row = 0;
   for (int row = even(rank) ? 1 : 0; row < h; row += 2) {
-    memcpy(&slice[row * w], &partner_slice[partner_row * w], w * sizeof(int32_t));
+    memcpy(&slice[row * w], &partner_slice[partner_row * w], w * sizeof(int));
     partner_row += 1;
   }
 }
 
 
-void odd_even_sort(int w, int h, int32_t *slice, int32_t *partner_slice, int rank, 
+void odd_even_sort(int w, int h, int *slice, int *partner_slice, int rank, 
      int num_PEs, MPI_Datatype TYPE_ROW_SEND, MPI_Datatype TYPE_ROW_RECV)
 {
   for (int i = 0; i < num_PEs; i++) {
@@ -342,40 +370,48 @@ int main(int argc, char **argv)
 
   
   int n; // Size of matrix
-  int32_t* M = NULL; // Input matrix
+  int* M = NULL; // Input matrix
 
   // Root reads input matrix.
-  if (rank == ROOT) {
-    M = read_input(&n, input_file);
+  // if (rank == ROOT) {
+  //   M = read_input(&n, input_file);
 
-    if (n % num_PEs != 0) {
-      fprintf(stderr, "Matrix size should be divisible by the number of processes.\n");
-      MPI_Abort(MPI_COMM_WORLD, 1);
-      exit(EXIT_FAILURE);
-    }
+  //   if (n % num_PEs != 0) {
+  //     fprintf(stderr, "Matrix size should be divisible by the number of processes.\n");
+  //     MPI_Abort(MPI_COMM_WORLD, 1);
+  //     exit(EXIT_FAILURE);
+  //   }
+  // }
+
+  int* M;
+  int n;
+  if (rank == 0) {
+      if(read_input(".input/256x256.txt", &M, &n) == -1) {
+          MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+      }
   }
 
-  // Broadcast matrix size to all PEs.
-  MPI_Bcast(&n, 1, MPI_INT, ROOT, MPI_COMM_WORLD);
+  // Share n with all other processes
+  MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
   // Width and height of matrix slices.
   const int w = n / num_PEs;
   const int h = n;
 
   // Each process' individual slice of columns.
-  int32_t *slice = calloc(w * h, sizeof(*slice));
+  int *slice = calloc(w * h, sizeof(*slice));
   // Used for odd-even transposition sort.
   // Allocating here allows reusage.
-  int32_t* partner_slice = calloc(w * ceil((double)h/2), sizeof(*partner_slice));
+  int* partner_slice = calloc(w * ceil((double)h/2), sizeof(*partner_slice));
   
   // Types for sending and receiving columns.
   MPI_Datatype TYPE_TMP, TYPE_TMP2, TYPE_COL_MATRIX, TYPE_COL_SLICE;
   MPI_Type_vector(h, 1, h, MPI_INT32_T, &TYPE_TMP);
-  MPI_Type_create_resized(TYPE_TMP, 0, sizeof(int32_t), &TYPE_COL_MATRIX);
+  MPI_Type_create_resized(TYPE_TMP, 0, sizeof(int), &TYPE_COL_MATRIX);
   MPI_Type_commit(&TYPE_COL_MATRIX);
   
   MPI_Type_vector(h, 1, w, MPI_INT32_T, &TYPE_TMP2);
-  MPI_Type_create_resized(TYPE_TMP2, 0, sizeof(int32_t), &TYPE_COL_SLICE);
+  MPI_Type_create_resized(TYPE_TMP2, 0, sizeof(int), &TYPE_COL_SLICE);
   MPI_Type_commit(&TYPE_COL_SLICE);
   
   // Types for sending and receiving row slices.
@@ -434,9 +470,9 @@ int main(int argc, char **argv)
 
   
   // Gather slices in temporary array.
-  int32_t* tmp = NULL;
+  int* tmp = NULL;
   if (rank == ROOT) {
-    tmp = calloc(n*n, sizeof(int32_t));
+    tmp = calloc(n*n, sizeof(int));
   }
 
   MPI_Gather(
@@ -454,7 +490,7 @@ int main(int argc, char **argv)
   if (rank == ROOT) {
     for (int p = 0; p < num_PEs; p++) {
       for (int row = 0; row < h; row++) {
-        memcpy(&M[(p * w) + (row * n)], &tmp[(p * w * h) + (row * w)], w * sizeof(int32_t));
+        memcpy(&M[(p * w) + (row * n)], &tmp[(p * w * h) + (row * w)], w * sizeof(int));
       }
     }
   }
