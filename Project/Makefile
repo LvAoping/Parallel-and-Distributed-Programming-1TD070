@@ -1,13 +1,22 @@
+INPUT = input/32x32.txt
+N = 4
+
 CC = mpicc
-CCFLAGS = -g -O3
+CFLAGS = -std=c99 -O3 -Wall
 LIBS = -lm
 
-BINS = shear_sort
+BIN = shearsort
 
-all: $(BINS)
+all: $(BIN)
 
-%: %.c
-	$(CC) $(CCFLAGS) -o $@ $< $(LIBS)
+shearsort: shearsort.o
+	$(CC) $(CFLAGS) $^ -o $@ $(LIBS) 
 
 clean:
-	$(RM) $(BINS)
+	$(RM) $(BIN) *.o
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $<
+
+run: shearsort
+	mpirun -n $(N) ./shearsort -cs $(INPUT)

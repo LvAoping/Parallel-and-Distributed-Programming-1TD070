@@ -29,4 +29,4 @@ for i in range(1, NUMRUNS):
   print("Running: {}".format(c))
   os.system(c)
 
-# mpirun -np 4 ./shearsort -cs input/16x16.txt
+# mpirun -np 4 ./shearsort input/16x16.txt result.txt 0
