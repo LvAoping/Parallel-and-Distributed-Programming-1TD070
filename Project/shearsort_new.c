@@ -3,6 +3,22 @@
 #include <stdio.h>
 #include <math.h>
 
+/* Input/Output Handling*/
+
+
+
+
+
+// Function to print the matrix
+void print_matrix(int* matrix, int n) {
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            printf("%d ", matrix[i * n + j]);
+        }
+        printf("\n");
+    }
+}
+
 // Comparator functions for qsort
 int asc_comparator(const void* a, const void* b) {
     return (*(int*)a - *(int*)b);
@@ -48,15 +64,7 @@ void populate_matrix(int* matrix, int n) {
     }
 }
 
-// Function to print the matrix
-void print_matrix(int* matrix, int n) {
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < n; ++j) {
-            printf("%d ", matrix[i * n + j]);
-        }
-        printf("\n");
-    }
-}
+
 
 int main(int argc, char** argv) {
     int rank, size;

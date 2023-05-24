@@ -2,7 +2,7 @@ INPUT = input/32x32.txt
 N = 4
 
 CC = mpicc
-CFLAGS = -std=c99 -O3
+CFLAGS = -std=c99 -O3 -Wall
 LIBS = -lm
 
 BIN = shearsort

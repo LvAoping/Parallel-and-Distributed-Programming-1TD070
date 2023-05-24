@@ -6,8 +6,7 @@ import os
 
 NUMRUNS = 100
 
-LB = -1000000
-UB =  1000000
+
 SIZES = range(1, 400)
 NUMPE = range(1, 17)
 
@@ -15,7 +14,7 @@ def genFile(n):
   with open("input/{}x{}.txt".format(str(n), str(n)), "w") as f:
     f.write(str(n) + '\n')
     
-    nums = random.choices(range(LB, UB), k=n*n)
+    nums = random.choices(range(-n, n), k=n*n)
 
     for row in range(n):
       for col in range(n):
@@ -30,3 +29,4 @@ for i in range(1, NUMRUNS):
   print("Running: {}".format(c))
   os.system(c)
 
+# mpirun -np 4 ./shearsort -cs input/16x16.txt
